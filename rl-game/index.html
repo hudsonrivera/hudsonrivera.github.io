@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get Out the Vote</title>
+<style>
+  :root {
+    --text: #1c1f1e;
+    --muted: #545a57;
+    --bg: #faf9f6;
+    --panel: #ffffff;
+    --rule: #e4e8e6;
+    --accent: #1f5f4a;
+    --danger: #8a2420;
+    --wall: #3a3c40;
+    --cell: #f4f1ec;
+    --hq: #e6e1da;
+    --sup: #cfe7d8;
+    --sup-done: #4f9a72;
+    --opp: #f0d6d4;
+    --agent: #8a2420;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: #ecebe8; --muted: #a7aaa8; --bg: #161817; --panel: #1f2221; --rule: #333836;
+      --accent: #6cc39a; --danger: #e07a73; --wall: #0b0c0d; --cell: #2a2d2c; --hq: #3b3d3b;
+      --sup: #24473a; --sup-done: #4f9a72; --opp: #4d2a28; --agent: #e07a73;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.6; }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 2rem 16px 4rem; }
+  h1, h2 { font-family: var(--serif); line-height: 1.2; }
+  h1 { font-size: 2.2rem; margin: 0 0 .5rem; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 .5rem; }
+  p { max-width: 46rem; }
+  a { color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem; }
+  .row { display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start; }
+  .board { display: grid; grid-template-columns: repeat(7, 1fr); width: min(100%, 22rem); aspect-ratio: 1;
+           border: 1px solid var(--rule); }
+  .c { background: var(--cell); border: 1px solid var(--rule); display: grid; place-items: center;
+       font-weight: 700; font-size: .85rem; position: relative; }
+  .c.wall { background: var(--wall); }
+  .c.hq { background: var(--hq); }
+  .c.sup { background: var(--sup); color: var(--accent); }
+  .c.sup.done { background: var(--sup-done); color: #fff; }
+  .c.opp { background: var(--opp); color: var(--danger); }
+  .c .arrow { position: absolute; color: var(--muted); font-weight: 400; opacity: .7; }
+  .c .dot { position: absolute; width: 70%; height: 70%; border-radius: 50%; background: var(--agent);
+            border: 2px solid #fff; }
+  .legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .85rem; color: var(--muted); margin-top: .6rem; }
+  .sw { display: inline-block; width: .9rem; height: .9rem; border: 1px solid var(--rule); vertical-align: -2px; margin-right: .3rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 1rem; flex: 1; min-width: 16rem; }
+  .stat { border-top: 3px solid var(--text); padding-top: .4rem; }
+  .stat b { display: block; font-family: var(--serif); font-size: 1.8rem; color: var(--danger); }
+  .stat span { font-size: .85rem; color: var(--muted); }
+  .pad { display: grid; grid-template-columns: repeat(3, 3rem); gap: .3rem; margin-top: 1rem; }
+  button, select, input { font: inherit; }
+  button { padding: .5rem .9rem; border-radius: 6px; border: 1.5px solid var(--text); background: var(--panel);
+           color: var(--text); cursor: pointer; }
+  button.primary { background: var(--text); color: var(--bg); }
+  button:disabled { opacity: .5; cursor: default; }
+  select, input { padding: .4rem; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--text); }
+  label { font-size: .85rem; font-weight: 600; display: block; margin-bottom: .2rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; }
+  .btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+  ul.rules { margin: .3rem 0; padding-left: 1.2rem; font-size: .95rem; }
+  canvas { width: 100%; height: 200px; display: block; }
+  .key { font-size: .85rem; color: var(--muted); }
+  .note { font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Get Out the Vote</h1>
+  <p>You're a canvasser leaving campaign headquarters (<b>H</b>). Three of your <b>supporters</b> (green, <b>A–C</b>)
+  haven't voted yet. Reach all of them before the polls close in <b>30 moves</b>. Dark squares are blocked streets.
+  The red house (<b>O</b>) backs the other side, so knocking there reminds an opponent to vote. Use the arrow keys or the buttons.</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="board" id="playBoard"></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--hq)"></i>HQ</span>
+          <span><i class="sw" style="background:var(--sup)"></i>supporter</span>
+          <span><i class="sw" style="background:var(--sup-done)"></i>voted</span>
+          <span><i class="sw" style="background:var(--opp)"></i>opponent</span>
+          <span><i class="sw" style="background:var(--wall)"></i>blocked</span>
+        </div>
+        <div class="pad">
+          <span></span><button data-a="0" aria-label="up">↑</button><span></span>
+          <button data-a="3" aria-label="left">←</button><button data-a="1" aria-label="down">↓</button><button data-a="2" aria-label="right">→</button>
+        </div>
+        <div class="btns"><button id="newGame">New game</button></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="pScore">0</b><span>points (current reward)</span></div>
+        <div class="stat"><b id="pVoters">0 / 3</b><span>supporters who voted</span></div>
+        <div class="stat"><b id="pDoors">0</b><span>doors knocked</span></div>
+        <div class="stat"><b id="pMoves">0 / 30</b><span>moves used</span></div>
+        <div class="stat"><b id="pStatus">Canvassing</b><span>status</span></div>
+        <div style="grid-column: 1 / -1">
+          <div class="key"><b>How points work right now</b></div>
+          <ul class="rules" id="rulesList"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Train an agent</h2>
+  <p>The agent starts with every Q-value at 0. It plays thousands of practice games, explores, and updates its table
+  with Q-learning. <b>Watch it play</b> shows one game with no exploring. The arrows on the board show its best move
+  from each square, given the supporters it has already reached.</p>
+
+  <div class="card">
+    <div class="controls">
+      <div>
+        <label for="rewardSel">Reward (the only thing the agent knows about your goal)</label>
+        <select id="rewardSel">
+          <option value="voters" selected>Pay per supporter who votes (default)</option>
+          <option value="doors">Pay per door knocked</option>
+        </select>
+      </div>
+      <div>
+        <label for="seedSel">Random seed</label>
+        <select id="seedSel"><option>158</option><option>1</option><option>42</option><option>2026</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <div class="board" id="agentBoard"></div>
+        <div class="btns">
+          <button class="primary" id="train100">Train 100 games</button>
+          <button class="primary" id="train1000">Train 1,000</button>
+          <button id="watch">Watch it play</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="aGames">0</b><span>training games so far</span></div>
+        <div class="stat"><b id="aVoters">–</b><span>supporters reached in its learned game</span></div>
+        <div class="stat"><b id="aDoors">–</b><span>doors knocked in that game</span></div>
+        <div class="stat"><b id="aScore">–</b><span>points in that game</span></div>
+        <div style="grid-column: 1 / -1">
+          <div class="key"><b>Learning curve</b> (each point = average of 50 training games)</div>
+          <canvas id="curve" width="600" height="200"></canvas>
+          <div class="key"><span style="color:var(--text)">— points per game</span> (what the agent maximizes) ·
+            <span style="color:var(--accent)">— supporters who voted</span> (what the campaign wants) ·
+            <span style="color:var(--danger)">— doors knocked</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Switching the reward or seed starts a fresh agent. Everything runs in your browser; nothing is saved or sent anywhere.</p>
+</div>
+
+<!-- Game + Q-learning engine. Plain JS so it also runs under Node for testing. -->
+<script id="engine">
+const W = 7, H = 7, MAX_MOVES = 30;
+// # blocked, H headquarters, A/B/C supporters, O opponent household, . street
+const MAP = [
+  "H..#..A",
+  ".#.#.#.",
+  ".#...#.",
+  "...#...",
+  "##.#.#B",
+  ".......",
+  "C.#...O",
+];
+const SUPPORTERS = ["A", "B", "C"];
+const MOVES = [[0, -1], [0, 1], [1, 0], [-1, 0]]; // up, down, right, left
+const ARROWS = ["↑", "↓", "→", "←"];
+
+const REWARDS = {
+  // What the campaign actually wants: supporters who turn out.
+  voters: {
+    label: "Pay per supporter who votes",
+    rules: ["Supporter votes (first knock): +10", "All 3 voted before polls close: +15",
+            "Knock on the opponent's door: −5", "Each move: −0.2", "Bump into a blocked street: −0.5"],
+    fn(ev) {
+      let r = -0.2;
+      if (ev.bump) r -= 0.5;
+      if (ev.newVoter) r += 10;
+      if (ev.opponent) r -= 5;
+      if (ev.allDone) r += 15;
+      return r;
+    },
+  },
+  // Sounds reasonable ("reward effort, doors knocked is what we can measure") but is gameable:
+  // re-knocking the same door counts every time, and opponents' doors count too.
+  doors: {
+    label: "Pay per door knocked",
+    rules: ["Each door knocked (any house, any number of times): +2", "Each move: −0.2", "Bump into a blocked street: −0.5"],
+    fn(ev) {
+      let r = -0.2;
+      if (ev.bump) r -= 0.5;
+      if (ev.knock) r += 2;
+      return r;
+    },
+  },
+};
+
+function newGame() {
+  const g = { x: 0, y: 0, voted: 0, moves: 0, doors: 0, opponentKnocks: 0, done: false };
+  return g;
+}
+function tile(x, y) { return MAP[y][x]; }
+function stateIndex(g) { return (g.voted * H + g.y) * W + g.x; }
+const N_STATES = 8 * W * H, N_ACTIONS = 4;
+
+// Apply one move; returns the event record that reward functions read.
+function step(g, a) {
+  const [dx, dy] = MOVES[a];
+  const nx = g.x + dx, ny = g.y + dy;
+  const ev = { bump: false, knock: false, newVoter: false, opponent: false, allDone: false };
+  if (nx < 0 || ny < 0 || nx >= W || ny >= H || tile(nx, ny) === "#") {
+    ev.bump = true;
+  } else {
+    g.x = nx; g.y = ny;
+    const t = tile(nx, ny);
+    const si = SUPPORTERS.indexOf(t);
+    if (si >= 0 || t === "O") { ev.knock = true; g.doors++; }
+    if (t === "O") { ev.opponent = true; g.opponentKnocks++; }
+    if (si >= 0 && !(g.voted & (1 << si))) {
+      g.voted |= 1 << si; ev.newVoter = true;
+      if (g.voted === 7) ev.allDone = true;
+    }
+  }
+  g.moves++;
+  if (ev.allDone || g.moves >= MAX_MOVES) g.done = true;
+  return ev;
+}
+function votersOf(g) { return (g.voted & 1) + ((g.voted >> 1) & 1) + ((g.voted >> 2) & 1); }
+
+function makeRng(seed) { // mulberry32
+  let s = seed >>> 0;
+  return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+function makeAgent(rewardKey, seed) {
+  return { rewardKey, rng: makeRng(seed), Q: new Float64Array(N_STATES * N_ACTIONS), games: 0,
+           history: [], alpha: 0.2, gamma: 0.95 };
+}
+function greedy(agent, s) {
+  let best = 0, bv = -Infinity;
+  for (let a = 0; a < N_ACTIONS; a++) { const v = agent.Q[s * N_ACTIONS + a]; if (v > bv) { bv = v; best = a; } }
+  return best;
+}
+// Exploration rate decays from 1.0 to 0.05 over the first 700 games.
+function epsilon(agent) { return Math.max(0.05, 1 - agent.games / 700); }
+
+function trainOne(agent) {
+  const reward = REWARDS[agent.rewardKey].fn;
+  const g = newGame();
+  let total = 0;
+  while (!g.done) {
+    const s = stateIndex(g);
+    const a = agent.rng() < epsilon(agent) ? Math.floor(agent.rng() * N_ACTIONS) : greedy(agent, s);
+    const r = reward(step(g, a));
+    total += r;
+    const s2 = stateIndex(g);
+    let target = r;
+    if (!g.done) target += agent.gamma * agent.Q[s2 * N_ACTIONS + greedy(agent, s2)];
+    const i = s * N_ACTIONS + a;
+    agent.Q[i] += agent.alpha * (target - agent.Q[i]); // Q-learning update
+  }
+  agent.games++;
+  agent.history.push({ points: total, voters: votersOf(g), doors: g.doors });
+}
+function train(agent, n) { for (let i = 0; i < n; i++) trainOne(agent); }
+
+// One game with no exploring: what the agent has actually learned.
+function playGreedy(agent) {
+  const reward = REWARDS[agent.rewardKey].fn;
+  const g = newGame(), path = [[g.x, g.y]];
+  let points = 0;
+  while (!g.done) { points += reward(step(g, greedy(agent, stateIndex(g)))); path.push([g.x, g.y]); }
+  return { points, voters: votersOf(g), doors: g.doors, opponentKnocks: g.opponentKnocks, moves: g.moves, path };
+}
+
+if (typeof module !== "undefined") module.exports = { REWARDS, makeAgent, train, playGreedy, newGame, step, MAP };
+</script>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => (Math.round(n * 10) / 10).toString();
+
+  function drawBoard(el, opts) {
+    el.innerHTML = "";
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const t = MAP[y][x], d = document.createElement("div");
+      d.className = "c";
+      if (t === "#") d.classList.add("wall");
+      else if (t === "H") { d.classList.add("hq"); d.textContent = "H"; }
+      else if (t === "O") { d.classList.add("opp"); d.textContent = "O"; }
+      else if (SUPPORTERS.includes(t)) {
+        d.classList.add("sup"); d.textContent = t;
+        if (opts.voted & (1 << SUPPORTERS.indexOf(t))) d.classList.add("done");
+      }
+      if (opts.arrows && t !== "#" && !(x === opts.x && y === opts.y)) {
+        const s = (opts.voted * H + y) * W + x, a = greedy(opts.agent, s);
+        const qs = opts.agent.Q.slice(s * 4, s * 4 + 4);
+        if (qs.some((v) => v !== 0) && !d.textContent) {
+          const ar = document.createElement("span"); ar.className = "arrow"; ar.textContent = ARROWS[a]; d.appendChild(ar);
+        }
+      }
+      if (x === opts.x && y === opts.y) { const dot = document.createElement("span"); dot.className = "dot"; d.appendChild(dot); }
+      el.appendChild(d);
+    }
+  }
+
+  // ---- Human play ----
+  let pg, pPoints;
+  function renderRules() {
+    $("rulesList").innerHTML = REWARDS[$("rewardSel").value].rules.map((r) => `<li>${r}</li>`).join("");
+  }
+  function resetPlay() { pg = newGame(); pPoints = 0; renderPlay(); }
+  function renderPlay() {
+    drawBoard($("playBoard"), { x: pg.x, y: pg.y, voted: pg.voted });
+    $("pScore").textContent = fmt(pPoints);
+    $("pVoters").textContent = `${votersOf(pg)} / 3`;
+    $("pDoors").textContent = pg.doors;
+    $("pMoves").textContent = `${pg.moves} / ${MAX_MOVES}`;
+    $("pStatus").textContent = !pg.done ? "Canvassing" : pg.voted === 7 ? "All voted!" : "Polls closed";
+  }
+  function humanMove(a) {
+    if (pg.done) return;
+    pPoints += REWARDS[$("rewardSel").value].fn(step(pg, a));
+    renderPlay();
+  }
+  document.querySelectorAll(".pad button").forEach((b) => b.addEventListener("click", () => humanMove(+b.dataset.a)));
+  const KEYS = { ArrowUp: 0, ArrowDown: 1, ArrowRight: 2, ArrowLeft: 3 };
+  document.addEventListener("keydown", (e) => {
+    if (e.key in KEYS && !/SELECT|INPUT/.test(document.activeElement.tagName)) { e.preventDefault(); humanMove(KEYS[e.key]); }
+  });
+  $("newGame").addEventListener("click", resetPlay);
+
+  // ---- Agent ----
+  let agent, anim = null;
+  function resetAgent() {
+    stopAnim();
+    agent = makeAgent($("rewardSel").value, +$("seedSel").value);
+    ["aVoters", "aDoors", "aScore"].forEach((id) => ($(id).textContent = "–"));
+    renderAgent();
+  }
+  function renderAgent(pos) {
+    const p = pos || { x: 0, y: 0, voted: 0 };
+    drawBoard($("agentBoard"), { ...p, arrows: agent.games > 0, agent });
+    $("aGames").textContent = agent.games.toLocaleString();
+    drawCurve();
+  }
+  function showLearned() {
+    const r = playGreedy(agent);
+    $("aVoters").textContent = `${r.voters} / 3`;
+    $("aDoors").textContent = r.doors;
+    $("aScore").textContent = fmt(r.points);
+    return r;
+  }
+  function doTrain(n) { stopAnim(); train(agent, n); showLearned(); renderAgent(); }
+  $("train100").addEventListener("click", () => doTrain(100));
+  $("train1000").addEventListener("click", () => doTrain(1000));
+  $("watch").addEventListener("click", () => {
+    stopAnim();
+    const r = showLearned();
+    const g = newGame(); let i = 0;
+    const acts = [];
+    // replay greedily so we can track the voted mask along the way
+    const sim = newGame();
+    while (!sim.done) { const a = greedy(agent, (sim.voted * H + sim.y) * W + sim.x); step(sim, a); acts.push(a); }
+    renderAgent({ x: g.x, y: g.y, voted: g.voted });
+    anim = setInterval(() => {
+      if (i >= acts.length) return stopAnim();
+      step(g, acts[i++]); renderAgent({ x: g.x, y: g.y, voted: g.voted });
+    }, 180);
+  });
+  function stopAnim() { if (anim) { clearInterval(anim); anim = null; } }
+
+  function drawCurve() {
+    const cv = $("curve"), ctx = cv.getContext("2d");
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth || 600, h = 200;
+    cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const css = getComputedStyle(document.documentElement);
+    const col = (v) => css.getPropertyValue(v).trim();
+    const hist = agent.history, B = 50, n = Math.floor(hist.length / B);
+    if (n < 2) {
+      ctx.fillStyle = col("--muted"); ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("Train at least 100 games to see the curve.", w / 2, h / 2); return;
+    }
+    const avg = (k) => Array.from({ length: n }, (_, i) => {
+      let s = 0; for (let j = i * B; j < (i + 1) * B; j++) s += hist[j][k]; return s / B; });
+    const series = [
+      { d: avg("points"), c: col("--text") },
+      { d: avg("voters"), c: col("--accent"), max: 3 },
+      { d: avg("doors"), c: col("--danger") },
+    ];
+    ctx.strokeStyle = col("--rule"); ctx.beginPath(); ctx.moveTo(0, h - 1); ctx.lineTo(w, h - 1); ctx.stroke();
+    for (const s of series) {
+      const lo = Math.min(0, ...s.d), hi = Math.max(s.max || 0, ...s.d, 1);
+      ctx.strokeStyle = s.c; ctx.lineWidth = 2; ctx.beginPath();
+      s.d.forEach((v, i) => { const X = (i / (n - 1)) * (w - 8) + 4, Y = h - 6 - ((v - lo) / (hi - lo)) * (h - 12);
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      ctx.stroke();
+    }
+  }
+
+  $("rewardSel").addEventListener("change", () => { renderRules(); resetPlay(); resetAgent(); });
+  $("seedSel").addEventListener("change", resetAgent);
+  window.addEventListener("resize", drawCurve);
+  renderRules(); resetPlay(); resetAgent();
+})();
+</script>
+</body>
+</html>
