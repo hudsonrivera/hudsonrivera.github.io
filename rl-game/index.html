@@ -19,6 +19,7 @@
     --sup: #cfe7d8;
     --sup-done: #4f9a72;
     --opp: #f0d6d4;
+    --opp-done: #b5524c;
     --agent: #8a2420;
     --serif: Georgia, "Times New Roman", serif;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -27,7 +28,7 @@
     :root {
       --text: #ecebe8; --muted: #a7aaa8; --bg: #161817; --panel: #1f2221; --rule: #333836;
       --accent: #6cc39a; --danger: #e07a73; --wall: #0b0c0d; --cell: #2a2d2c; --hq: #3b3d3b;
-      --sup: #24473a; --sup-done: #4f9a72; --opp: #4d2a28; --agent: #e07a73;
+      --sup: #24473a; --sup-done: #4f9a72; --opp: #4d2a28; --opp-done: #b5524c; --agent: #e07a73;
     }
   }
   * { box-sizing: border-box; }
@@ -39,17 +40,18 @@
   p { max-width: 46rem; }
   .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem; }
   .row { display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start; }
-  .board { display: grid; grid-template-columns: repeat(7, 1fr); width: min(100%, 22rem); aspect-ratio: 1;
+  .board { display: grid; grid-template-columns: repeat(5, 1fr); width: min(100%, 20rem); aspect-ratio: 1;
            border: 1px solid var(--rule); }
   .c { background: var(--cell); border: 1px solid var(--rule); display: grid; place-items: center;
-       font-weight: 700; font-size: .85rem; position: relative; }
+       font-weight: 700; font-size: .9rem; position: relative; }
   .c.wall { background: var(--wall); }
   .c.hq { background: var(--hq); }
   .c.sup { background: var(--sup); color: var(--accent); }
   .c.sup.done { background: var(--sup-done); color: #fff; }
   .c.opp { background: var(--opp); color: var(--danger); }
+  .c.opp.done { background: var(--opp-done); color: #fff; }
   .c .arrow { position: absolute; color: var(--muted); font-weight: 400; opacity: .7; }
-  .c .dot { position: absolute; width: 70%; height: 70%; border-radius: 50%; background: var(--agent);
+  .c .dot { position: absolute; width: 60%; aspect-ratio: 1; border-radius: 50%; background: var(--agent);
             border: 2px solid #fff; }
   .legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .85rem; color: var(--muted); margin-top: .6rem; }
   .sw { display: inline-block; width: .9rem; height: .9rem; border: 1px solid var(--rule); vertical-align: -2px; margin-right: .3rem; }
@@ -64,7 +66,7 @@
   button.primary { background: var(--text); color: var(--bg); }
   select, input { padding: .4rem; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--text); width: 100%; }
   label { font-size: .85rem; font-weight: 600; display: block; margin-bottom: .2rem; }
-  .weights { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .8rem; margin: .8rem 0 1.2rem; }
+  .weights { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .8rem; margin: .8rem 0 0; }
   .btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
   canvas { width: 100%; height: 200px; display: block; }
   .key { font-size: .85rem; color: var(--muted); }
@@ -74,9 +76,10 @@
 <body>
 <div class="wrap">
   <h1>Get Out the Vote</h1>
-  <p>You're a canvasser leaving campaign headquarters (<b>H</b>). Three of your <b>supporters</b> (green, <b>A–C</b>)
-  haven't voted yet. Reach all of them before the polls close in <b>30 moves</b>. Dark squares are blocked streets.
-  The red house (<b>O</b>) backs the other side, so knocking there reminds an opponent to vote. Use the arrow keys or the buttons.</p>
+  <p>You're a canvasser leaving campaign headquarters (<b>H</b>). There are three houses. Two are your
+  <b>supporters</b> (green, <b>A</b> and <b>B</b>); one is <b>not</b> (red, <b>N</b>). Knocking on a door turns that
+  household out to vote, once. Turn out both supporters before the polls close in <b>25 moves</b>.
+  Dark squares are blocked streets. Use the arrow keys or the buttons.</p>
 
   <div class="card">
     <div class="row">
@@ -85,8 +88,8 @@
         <div class="legend">
           <span><i class="sw" style="background:var(--hq)"></i>HQ</span>
           <span><i class="sw" style="background:var(--sup)"></i>supporter</span>
+          <span><i class="sw" style="background:var(--opp)"></i>not a supporter</span>
           <span><i class="sw" style="background:var(--sup-done)"></i>voted</span>
-          <span><i class="sw" style="background:var(--opp)"></i>opponent</span>
           <span><i class="sw" style="background:var(--wall)"></i>blocked</span>
         </div>
         <div class="pad">
@@ -97,16 +100,17 @@
       </div>
       <div class="stats">
         <div class="stat"><b id="pScore">0</b><span>points (current reward)</span></div>
-        <div class="stat"><b id="pVoters">0 / 3</b><span>supporters who voted</span></div>
+        <div class="stat"><b id="pVoters">0 / 2</b><span>supporters who voted</span></div>
         <div class="stat"><b id="pDoors">0</b><span>doors knocked</span></div>
-        <div class="stat"><b id="pMoves">0 / 30</b><span>moves used</span></div>
+        <div class="stat"><b id="pMoves">0 / 25</b><span>moves used</span></div>
         <div class="stat"><b id="pStatus">Canvassing</b><span>status</span></div>
       </div>
     </div>
   </div>
 
   <h2>The reward</h2>
-  <p>These numbers are the only thing the agent knows about your goal. Pick a preset or type your own. Changing them starts a fresh agent.</p>
+  <p>These numbers are the only thing the agent knows about your goal. Pick a preset or type your own.
+  Changing them starts a fresh agent.</p>
   <div class="card">
     <label for="preset">Preset</label>
     <select id="preset" style="max-width:24rem">
@@ -117,8 +121,9 @@
   </div>
 
   <h2>Train an agent</h2>
-  <p>The agent starts with every Q-value at 0. Each training game it explores 20% of the time, collects rewards, and
-  updates its table. <b>Watch it play</b> shows one game with no exploring. The arrows show its best move from each square.</p>
+  <p>The agent starts with every Q-value at 0. Each training game it makes a random move 20% of the time, collects
+  rewards, and updates its table. <b>Watch it play</b> shows one game with no exploring. The arrows show its best move
+  from each square, given who has voted so far.</p>
 
   <div class="card">
     <div class="row">
@@ -133,15 +138,14 @@
       </div>
       <div class="stats">
         <div class="stat"><b id="aGames">0</b><span>training games so far</span></div>
-        <div class="stat"><b id="aVoters">–</b><span>supporters reached in its learned game</span></div>
+        <div class="stat"><b id="aVoters">–</b><span>supporters who voted in its learned game</span></div>
         <div class="stat"><b id="aDoors">–</b><span>doors knocked in that game</span></div>
         <div class="stat"><b id="aScore">–</b><span>points in that game</span></div>
         <div style="grid-column: 1 / -1">
           <div class="key"><b>Learning curve</b> (each point = average of 50 training games)</div>
           <canvas id="curve" width="600" height="200"></canvas>
-          <div class="key"><span style="color:var(--text)">— points per game</span> (what the agent maximizes) ·
-            <span style="color:var(--accent)">— % of games where all 3 supporters vote</span> (the real goal) ·
-            <span style="color:var(--danger)">— doors knocked</span></div>
+          <div class="key"><span style="color:var(--text)">— average reward per game</span> (what the agent maximizes) ·
+            <span style="color:var(--accent)">— % of games turning out both supporters</span> (the real goal)</div>
         </div>
       </div>
     </div>
@@ -154,70 +158,71 @@
 // ---- Reward: the points for one move. `ev` says what happened, `w` holds the numbers set on the page. ----
 function reward(ev, w) {
   let r = w.move;                       // every move costs a little, so shorter routes are better
-  if (ev.bump) r += w.bump;             // walking into a blocked street
+  if (ev.bump) r += w.bump;             // walking into a blocked street or the edge
   if (ev.knock) r += w.door;            // any door knocked, including repeat knocks
-  if (ev.newVoter) r += w.voter;        // a supporter votes (first knock on their door only)
-  if (ev.opponent) r += w.opponent;     // knocking the opponent's door reminds them to vote
-  if (ev.allDone) r += w.allDone;       // all three supporters voted before polls close
+  if (ev.newSupporter) r += w.supporter; // a supporter turns out to vote (first knock only)
+  if (ev.newOther) r += w.other;        // the non-supporter turns out to vote (first knock only)
+  if (ev.goal) r += w.goal;             // both supporters have voted: the real goal
   return r;
 }
 
 const REWARD_TERMS = [
-  ["voter", "Supporter votes"], ["allDone", "All 3 voted bonus"], ["opponent", "Knock opponent's door"],
+  ["supporter", "Supporter votes"], ["goal", "Both supporters voted"], ["other", "Non-supporter votes"],
   ["door", "Each door knocked"], ["move", "Each move"], ["bump", "Hit a blocked street"],
 ];
 const PRESETS = {
-  // What the campaign actually wants: supporters who turn out.
-  voters: { voter: 10, allDone: 15, opponent: -5, door: 0, move: -0.2, bump: -0.5 },
-  // Sounds reasonable ("reward effort, doors knocked is what we can measure") but is gameable:
-  // re-knocking the same door counts every time.
-  doors:  { voter: 0, allDone: 0, opponent: 0, door: 2, move: -0.2, bump: -0.5 },
+  // What the campaign actually wants: its supporters turn out, and the other side doesn't.
+  voters: { supporter: 10, goal: 10, other: -5, door: 0, move: -0.2, bump: -0.5 },
+  // Sounds reasonable ("reward effort; doors knocked is easy to count") but is gameable:
+  // knocking the same door again counts every time, and so does the non-supporter's door.
+  doors:  { supporter: 0, goal: 0, other: 0, door: 2, move: -0.2, bump: -0.5 },
 };
 
-const W = 7, H = 7, MAX_MOVES = 30;
-// # blocked, H headquarters, A/B/C supporters, O opponent household, . street
+const W = 5, H = 5, MAX_MOVES = 25;
+// # blocked, H headquarters, A/B supporters, N non-supporter, . street
 const MAP = [
-  "H..#..A",
-  ".#.#.#.",
-  ".#...#.",
-  "...#...",
-  "##.#.#B",
-  ".......",
-  "C.#...O",
+  "H..#A",
+  ".#...",
+  ".#.#.",
+  "...#.",
+  "B.N..",
 ];
-const SUPPORTERS = ["A", "B", "C"];
+const HOUSES = ["A", "B", "N"];           // bit 0, bit 1, bit 2 of `voted`
+const SUPPORTER_BITS = 0b011, OTHER_BIT = 0b100;
 const MOVES = [[0, -1], [0, 1], [1, 0], [-1, 0]]; // up, down, right, left
 const ARROWS = ["↑", "↓", "→", "←"];
 
-// State = position x supporters already voted (3 yes/no flags).
-// 37 open squares x 8 combinations = 296 reachable states (392 slots in the table).
+// State = canvasser's square x which of the 3 houses have voted (8 combinations).
+// 20 open squares x 8 = 160 reachable states (200 slots in the table).
 const N_STATES = 8 * W * H, N_ACTIONS = 4;
 function stateIndex(g) { return (g.voted * H + g.y) * W + g.x; }
 
-function newGame() { return { x: 0, y: 0, voted: 0, moves: 0, doors: 0, opponentKnocks: 0, done: false }; }
+function newGame() { return { x: 0, y: 0, voted: 0, moves: 0, doors: 0, done: false }; }
 function tile(x, y) { return MAP[y][x]; }
-function votersOf(g) { return (g.voted & 1) + ((g.voted >> 1) & 1) + ((g.voted >> 2) & 1); }
+function supportersVoted(g) { return (g.voted & 1) + ((g.voted >> 1) & 1); }
 
 // Apply one move; returns the event record that reward() reads.
 function step(g, a) {
   const [dx, dy] = MOVES[a];
   const nx = g.x + dx, ny = g.y + dy;
-  const ev = { bump: false, knock: false, newVoter: false, opponent: false, allDone: false };
+  const ev = { bump: false, knock: false, newSupporter: false, newOther: false, goal: false };
   if (nx < 0 || ny < 0 || nx >= W || ny >= H || tile(nx, ny) === "#") {
     ev.bump = true;
   } else {
     g.x = nx; g.y = ny;
-    const t = tile(nx, ny);
-    const si = SUPPORTERS.indexOf(t);
-    if (si >= 0 || t === "O") { ev.knock = true; g.doors++; }
-    if (t === "O") { ev.opponent = true; g.opponentKnocks++; }
-    if (si >= 0 && !(g.voted & (1 << si))) {
-      g.voted |= 1 << si; ev.newVoter = true;
-      if (g.voted === 7) ev.allDone = true;
+    const h = HOUSES.indexOf(tile(nx, ny));
+    if (h >= 0) {
+      ev.knock = true; g.doors++;
+      const bit = 1 << h;
+      if (!(g.voted & bit)) {           // each household turns out once
+        g.voted |= bit;
+        if (bit === OTHER_BIT) ev.newOther = true; else ev.newSupporter = true;
+        if ((g.voted & SUPPORTER_BITS) === SUPPORTER_BITS) ev.goal = true;
+      }
     }
   }
   g.moves++;
-  if (ev.allDone || g.moves >= MAX_MOVES) g.done = true;
+  if (ev.goal || g.moves >= MAX_MOVES) g.done = true;
   return ev;
 }
 
@@ -251,14 +256,14 @@ function trainOne(agent) {
     const a = agent.rng() < EPSILON ? Math.floor(agent.rng() * N_ACTIONS) : greedy(agent, s);
     const ev = step(g, a), r = reward(ev, agent.w);
     total += r;
-    // Only "all 3 voted" truly ends the game. Running out of moves just cuts it off: the agent can't see
+    // Only reaching the goal truly ends the game. Running out of moves just cuts it off: the agent can't see
     // the clock, so we still look ahead from where it stands instead of treating that square as an ending.
-    const target = ev.allDone ? r : r + GAMMA * maxQ(agent, stateIndex(g));
+    const target = ev.goal ? r : r + GAMMA * maxQ(agent, stateIndex(g));
     const i = s * N_ACTIONS + a;
     agent.Q[i] += ALPHA * (target - agent.Q[i]); // Q-learning update
   }
   agent.games++;
-  agent.history.push({ points: total, goal: g.voted === 7 ? 1 : 0, doors: g.doors });
+  agent.history.push({ points: total, goal: (g.voted & SUPPORTER_BITS) === SUPPORTER_BITS ? 1 : 0 });
 }
 function train(agent, n) { for (let i = 0; i < n; i++) trainOne(agent); }
 
@@ -270,7 +275,7 @@ function playGreedy(agent) {
     points += reward(step(g, greedy(agent, stateIndex(g))), agent.w);
     path.push({ x: g.x, y: g.y, voted: g.voted });
   }
-  return { points, voters: votersOf(g), doors: g.doors, opponentKnocks: g.opponentKnocks, moves: g.moves, path };
+  return { points, supporters: supportersVoted(g), other: !!(g.voted & OTHER_BIT), doors: g.doors, moves: g.moves, path };
 }
 
 if (typeof module !== "undefined") module.exports = { reward, PRESETS, makeAgent, train, playGreedy, newGame, step, MAP };
@@ -294,18 +299,18 @@ if (typeof module !== "undefined") module.exports = { reward, PRESETS, makeAgent
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const t = MAP[y][x], d = document.createElement("div");
       d.className = "c";
+      const h = HOUSES.indexOf(t);
       if (t === "#") d.classList.add("wall");
       else if (t === "H") { d.classList.add("hq"); d.textContent = "H"; }
-      else if (t === "O") { d.classList.add("opp"); d.textContent = "O"; }
-      else if (SUPPORTERS.includes(t)) {
-        d.classList.add("sup"); d.textContent = t;
-        if (opts.voted & (1 << SUPPORTERS.indexOf(t))) d.classList.add("done");
+      else if (h >= 0) {
+        d.classList.add(t === "N" ? "opp" : "sup"); d.textContent = t;
+        if (opts.voted & (1 << h)) d.classList.add("done");
       }
       if (opts.agent && opts.agent.games > 0 && t !== "#" && !d.textContent && !(x === opts.x && y === opts.y)) {
         const s = (opts.voted * H + y) * W + x, qs = opts.agent.Q.slice(s * 4, s * 4 + 4);
         if (qs.some((v) => v !== 0)) {
-          const best = qs.indexOf(Math.max(...qs));
-          const ar = document.createElement("span"); ar.className = "arrow"; ar.textContent = ARROWS[best]; d.appendChild(ar);
+          const ar = document.createElement("span"); ar.className = "arrow";
+          ar.textContent = ARROWS[qs.indexOf(Math.max(...qs))]; d.appendChild(ar);
         }
       }
       if (x === opts.x && y === opts.y) { const dot = document.createElement("span"); dot.className = "dot"; d.appendChild(dot); }
@@ -319,10 +324,10 @@ if (typeof module !== "undefined") module.exports = { reward, PRESETS, makeAgent
   function renderPlay() {
     drawBoard($("playBoard"), { x: pg.x, y: pg.y, voted: pg.voted });
     $("pScore").textContent = fmt(pPoints);
-    $("pVoters").textContent = `${votersOf(pg)} / 3`;
+    $("pVoters").textContent = `${supportersVoted(pg)} / 2`;
     $("pDoors").textContent = pg.doors;
     $("pMoves").textContent = `${pg.moves} / ${MAX_MOVES}`;
-    $("pStatus").textContent = !pg.done ? "Canvassing" : pg.voted === 7 ? "All voted!" : "Polls closed";
+    $("pStatus").textContent = !pg.done ? "Canvassing" : supportersVoted(pg) === 2 ? "Both voted!" : "Polls closed";
   }
   function humanMove(a) {
     if (pg.done) return;
@@ -345,14 +350,13 @@ if (typeof module !== "undefined") module.exports = { reward, PRESETS, makeAgent
     renderAgent();
   }
   function renderAgent(pos) {
-    const p = pos || { x: 0, y: 0, voted: 0 };
-    drawBoard($("agentBoard"), { ...p, agent });
+    drawBoard($("agentBoard"), { ...(pos || { x: 0, y: 0, voted: 0 }), agent });
     $("aGames").textContent = agent.games.toLocaleString();
     drawCurve();
   }
   function showLearned() {
     const r = playGreedy(agent);
-    $("aVoters").textContent = `${r.voters} / 3`;
+    $("aVoters").textContent = `${r.supporters} / 2`;
     $("aDoors").textContent = r.doors;
     $("aScore").textContent = fmt(r.points);
     return r;
@@ -366,7 +370,7 @@ if (typeof module !== "undefined") module.exports = { reward, PRESETS, makeAgent
     const { path } = showLearned();
     let i = 0;
     renderAgent(path[0]);
-    anim = setInterval(() => { if (++i >= path.length) return stopAnim(); renderAgent(path[i]); }, 180);
+    anim = setInterval(() => { if (++i >= path.length) return stopAnim(); renderAgent(path[i]); }, 200);
   });
   function stopAnim() { if (anim) { clearInterval(anim); anim = null; } }
 
@@ -387,7 +391,6 @@ if (typeof module !== "undefined") module.exports = { reward, PRESETS, makeAgent
     const series = [
       { d: avg("points"), c: col("--text") },
       { d: avg("goal"), c: col("--accent"), lo: 0, hi: 1 },
-      { d: avg("doors"), c: col("--danger") },
     ];
     ctx.strokeStyle = col("--rule"); ctx.beginPath(); ctx.moveTo(0, h - 1); ctx.lineTo(w, h - 1); ctx.stroke();
     for (const s of series) {
